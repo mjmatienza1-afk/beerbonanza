@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Placed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>Beer Bonanza!</h1>
+    <h2>Your order is now being served!</h2>
+</header>
+
+<div class="backbutton">
+    <p id="order">Thank you for your order.</p>
+    <a href="{{ url_for('index') }}"><button>Go back to Order Menu</button></a>
+</div>
+
+</body>
+</html>

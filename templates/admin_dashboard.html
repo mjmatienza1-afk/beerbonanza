@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div id="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {% set tab = request.args.get('tab', 'users') %}
+
+    <div class="admin-container">
+
+        <aside class="sidebar">
+            <h2>Admin Panel</h2>
+            <ul>
+                <li><a href="{{ url_for('admin_dashboard') }}?tab=users" class="{% if tab=='users' %}active{% endif %}">Users</a></li>
+                <li><a href="{{ url_for('admin_dashboard') }}?tab=orders" class="{% if tab=='orders' %}active{% endif %}">Orders</a></li>
+                <li><a href="{{ url_for('admin_dashboard') }}?tab=items" class="{% if tab=='items' %}active{% endif %}">Menu Items</a></li>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+
+        {% if tab == 'users' %}
+            <h2>User Management</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" id="admin_form" class="delete-form">
+                            <button>Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+
+        {% elif tab == 'orders' %}
+            <h2>Orders</h2>
+            <div class="orders-container">
+                {% for order in orders %}
+                <div class="order-card">
+                    <p><strong>User:</strong> {{ order.user.username }}</p>
+                    <p><strong>Timestamp:</strong> {{ order.timestamp }}</p>
+
+                    <p><strong>Products:</strong></p>
+                    <ul>
+                        {% set ns = namespace(total=0) %}
+                        {% for oi in order.ordered_items %}
+                            {% set line_total = oi.item.price * oi.quantity %}
+                            <li>{{ oi.item.name }} x {{ oi.quantity }} — ₱{{ line_total }}</li>
+                            {% set ns.total = ns.total + line_total %}
+                        {% endfor %}
+                    </ul>
+                    <p><strong>Total Price:</strong> ₱{{ ns.total }}</p>
+
+                    <form action="{{ url_for('finish_order', order_id=order.id) }}" method="POST">
+                        <button type="submit">Finish Order</button>
+                    </form>
+                </div>
+                {% else %}
+                <p>No orders yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif tab == 'items' %}
+            <h2>Manage Menu Items</h2>
+            <form action="{{ url_for('add_item') }}" method="POST">
+                <h3>Add New Item</h3>
+                Name: <input type="text" name="name" required>
+                Price: <input type="number" name="price" required>
+                Category:
+                <select name="category" required>
+                    <option value="beer">Beer</option>
+                    <option value="side">Side</option>
+                </select>
+                <button type="submit">Add Item</button>
+            </form>
+
+            <h2>Beers</h2>
+            <div class="product-container">
+                {% for item in items if item.category == 'beer' %}
+                <div class="beer-card">
+                    <h3>{{ item.name }}</h3>
+                    <p>Price: ₱{{ item.price }}</p>
+                    <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST">
+                        <button type="submit">Delete Item</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h2>Sides</h2>
+            <div class="product-container">
+                {% for item in items if item.category == 'side' %}
+                <div class="side-card">
+                    <h3>{{ item.name }}</h3>
+                    <p>Price: ₱{{ item.price }}</p>
+                    <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST">
+                        <button type="submit">Delete Item</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        </main>
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const flashes = document.querySelectorAll(".flash");
+    flashes.forEach(flash => {
+        setTimeout(() => {
+            flash.style.opacity = "0"; 
+            setTimeout(() => flash.remove(), 500); 
+        }, 2000); 
+    });
+});
+</script>
+</body>
+</html>

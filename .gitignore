@@ -1,0 +1,19 @@
+# Local editor settings
+.vscode/
+.idea/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Virtual environments (if you add one later)
+venv/
+env/
+
+# Environment variables / Secrets
+.env
+
+# Local Databases
+instance/
+*.sqlite3
+*.db

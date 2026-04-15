@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Beer Bonanza</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<header>
+    <h1>Beer Bonanza!</h1>
+    <h2>Better when it's ice cold!</h2>
+    {% if user != 'guest' %}
+    <div class="cart-popup-wrapper">
+        <button id="cart-toggle">View Cart ({{ cart|length }})</button>
+        <button id="orders-toggle">View Orders</button>
+
+        <div id="cart-popup" class="cart-popup">
+            <h2>Your Cart</h2>
+            {% if cart %}
+            <ul>
+                {% for entry in cart %}
+                <li>
+                    {{ entry.name }} — Qty: {{ entry.quantity }} — ₱{{ entry.price * entry.quantity }}
+                    <form method="POST" style="display:inline">
+                        <input type="hidden" name="item" value="{{ entry.name }}">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit">Remove</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            <p><strong>Total: ₱{{ total }}</strong></p>
+            <form method="POST">
+                <input type="hidden" name="action" value="order">
+                <button type="submit">Place Order</button>
+            </form>
+            {% else %}
+            <p>Cart is empty</p>
+            {% endif %}
+        </div>
+
+        <div class="orders-popup" id="orders-popup">
+            <ul>
+                {% set user_id = session.get('user_id') %}
+                {% for order in orders %}
+                    {% if order.user_id == user_id %}
+                    <li>
+                        <p><strong>{{ order.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</strong></p>
+                        <ul>
+                            {% set order_total = namespace(total=0) %}
+                            {% for oi in order.ordered_items %}
+                                {% set line_total = oi.item.price * oi.quantity %}
+                                <li>{{ oi.item.name }} x {{ oi.quantity }} — ₱{{ line_total }}</li>
+                                {% set order_total.total = order_total.total + line_total %}
+                            {% endfor %}
+                        </ul>
+                        <p><strong>Total: ₱{{ order_total.total }}</strong></p>
+
+                
+                        {% if not order.finished %}
+                        <form action="{{ url_for('cancel_order', order_id=order.id) }}" method="POST" style="display:inline;">
+                            <button type="submit">Cancel Order</button>
+                        </form>
+                        {% else %}
+                        <span>Completed</span>
+                        {% endif %}
+                    </li>
+                    {% endif %}
+                {% else %}
+                    <li style="color: #333;">No orders yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="user-info">
+        {% if user == 'guest' %}
+            <a href="{{ url_for('login') }}" class="nav-link">Sign In</a> |
+            <a href="{{ url_for('signup') }}" class="nav-link">Sign Up</a>
+        {% else %}
+            Welcome, {{ user }} |
+            <a href="{{ url_for('logout') }}" class="nav-link">Logout</a> |
+            <a href="{{ url_for('order_history') }}" class="nav-link">Order History</a>
+
+            {% if session.get('role') == 'admin' %}
+            | <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin Dashboard</a>
+            {% endif %}
+        {% endif %}
+    </div>
+</header>
+
+<section class="products">
+    <h2>Beers</h2>
+    <div class="product-container">
+        {% for item in items if item.category == 'beer' %}
+        <div class="beer-card">
+            <h3>{{ item.name }}</h3>
+            <p>Price: ₱{{ item.price }}</p>
+            {% if user != 'guest' %}
+            <form method="POST">
+                <input type="hidden" name="item" value="{{ item.name }}">
+                <input type="hidden" name="action" value="add">
+                Qty: <input type="number" name="quantity" value="1" min="1">
+                <button type="submit">Add to Cart</button>
+            </form>
+            {% else %}
+            <p><em>Login to add to cart</em></p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2>Sides</h2>
+    <div class="product-container">
+        {% for item in items if item.category == 'side' %}
+        <div class="side-card">
+            <h3>{{ item.name }}</h3>
+            <p>Price: ₱{{ item.price }}</p>
+            {% if user != 'guest' %}
+            <form method="POST">
+                <input type="hidden" name="item" value="{{ item.name }}">
+                <input type="hidden" name="action" value="add">
+                Qty: <input type="number" name="quantity" value="1" min="1">
+                <button type="submit">Add to Cart</button>
+            </form>
+            {% else %}
+            <p><em>Login to add to cart</em></p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const cartToggle = document.getElementById("cart-toggle");
+    const ordersToggle = document.getElementById("orders-toggle");
+    const cartPopup = document.getElementById("cart-popup");
+    const ordersPopup = document.getElementById("orders-popup");
+
+    cartToggle.addEventListener("click", function() {
+        cartPopup.classList.toggle("open");
+        ordersPopup.classList.remove("open");
+    });
+
+    ordersToggle.addEventListener("click", function() {
+        ordersPopup.classList.toggle("open");
+        cartPopup.classList.remove("open");
+    });
+
+    document.addEventListener("click", function(event) {
+        if (!document.querySelector(".cart-popup-wrapper").contains(event.target)) {
+            cartPopup.classList.remove("open");
+            ordersPopup.classList.remove("open");
+        }
+    });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    const flashes = document.querySelectorAll(".flash");
+    flashes.forEach(flash => {
+        setTimeout(() => {
+            flash.style.opacity = "0"; 
+            setTimeout(() => flash.remove(), 500); 
+        }, 2000); 
+    });
+});
+</script>
+</body>
+</html>

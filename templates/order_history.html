@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>Beer Bonanza!</h1>
+    <h2>Order History</h2>
+    <div class="user-info">
+        Welcome, {{ user }} |
+        <a href="{{ url_for('index') }}" class="nav-link">Home</a> |
+        <a href="{{ url_for('logout') }}" class="nav-link">Logout</a> |
+        <a href="{{ url_for('order_history') }}" class="nav-link">Order History</a>
+    </div>
+</header>
+
+<h2 class="history-title">Your Order History</h2>
+
+<div class="order-history-container">
+
+{% for order in orders %}
+
+<div class="history-card">
+
+    <h3>Order #{{ order.id }}</h3>
+
+    <p class="order-status
+        {% if order.status == 'finished' %}status-finished{% endif %}
+        {% if order.status == 'cancelled' %}status-cancelled{% endif %}">
+        Status: {{ order.status }}
+    </p>
+
+    <p>{{ order.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+
+    <ul>
+    {% set order_total = namespace(total=0) %}
+    {% for oi in order.ordered_items %}
+        {% set line_total = oi.item.price * oi.quantity %}
+        <li>{{ oi.item.name }} x {{ oi.quantity }} — ₱{{ line_total }}</li>
+        {% set order_total.total = order_total.total + line_total %}
+    {% endfor %}
+    </ul>
+
+    <p class="order-total">Total: ₱{{ order_total.total }}</p>
+
+    <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST">
+        <button type="submit">Delete</button>
+    </form>
+
+</div>
+
+{% else %}
+<p style="text-align:center;">No orders yet.</p>
+{% endfor %}
+
+</div>
+
+</body>
+</html>
